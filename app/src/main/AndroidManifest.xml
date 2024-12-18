@@ -10,11 +10,14 @@
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
     <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
+    <uses-permission android:name="android.permission.INTERNET" />
+
 
     <application
         android:allowBackup="true"
         android:label="@string/app_name"
-        android:theme="@style/Theme.RemoteIDScanner">
+        android:theme="@style/Theme.RemoteIDScanner"
+        android:usesCleartextTraffic="true">
 
         <activity android:name=".MainActivity"
             android:exported="true">

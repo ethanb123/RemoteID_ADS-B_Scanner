@@ -1,12 +1,47 @@
-<?xml version="1.0" encoding="utf-8"?>
-<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:orientation="vertical">
 
-    <ListView
-        android:id="@+id/device_list"
+    <!-- Location Text -->
+    <TextView
+        android:id="@+id/location_text"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:padding="16dp" />
+        android:layout_height="wrap_content"
+        android:text="Location: Not available"
+        android:padding="8dp"
+        android:textSize="16sp" />
 
-</RelativeLayout>
+    <!-- API Call Text -->
+    <TextView
+        android:id="@+id/api_call_text"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="API Call: Not available"
+        android:padding="8dp"
+        android:textSize="14sp" />
+
+    <!-- API Response Text -->
+    <TextView
+        android:id="@+id/api_response_text"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="API Response: Not available"
+        android:padding="8dp"
+        android:textSize="14sp" />
+
+    <!-- Remote ID List -->
+    <ListView
+        android:id="@+id/remote_id_list"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1" />
+
+    <!-- ADS-B List -->
+    <ListView
+        android:id="@+id/adsb_list"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1" />
+</LinearLayout>
