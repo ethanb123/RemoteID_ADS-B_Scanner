@@ -1,47 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
 <LinearLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical">
 
-    <!-- Location Text -->
+    <!-- Remote ID List -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Remote ID Drones"
+        android:textSize="18sp"
+        android:gravity="center"
+        android:padding="8dp" />
+
+    <ListView
+        android:id="@+id/remote_id_list"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:scrollbars="vertical" />
+
+    <!-- ADS-B List -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="ADS-B Flights"
+        android:textSize="18sp"
+        android:gravity="center"
+        android:padding="8dp" />
+
+    <ListView
+        android:id="@+id/adsb_list"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:scrollbars="vertical" />
+
+    <!-- Additional TextViews -->
     <TextView
         android:id="@+id/location_text"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="Location: Not available"
-        android:padding="8dp"
-        android:textSize="16sp" />
+        android:padding="8dp" />
 
-    <!-- API Call Text -->
     <TextView
         android:id="@+id/api_call_text"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="API Call: Not available"
-        android:padding="8dp"
-        android:textSize="14sp" />
+        android:padding="8dp" />
 
-    <!-- API Response Text -->
     <TextView
         android:id="@+id/api_response_text"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="API Response: Not available"
-        android:padding="8dp"
-        android:textSize="14sp" />
+        android:padding="8dp" />
 
-    <!-- Remote ID List -->
-    <ListView
-        android:id="@+id/remote_id_list"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1" />
-
-    <!-- ADS-B List -->
-    <ListView
-        android:id="@+id/adsb_list"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1" />
 </LinearLayout>

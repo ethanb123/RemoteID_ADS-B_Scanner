@@ -7,6 +7,7 @@
 package com.example.remoteidscanner;
 
 import android.Manifest;
+import android.annotation.SuppressLint;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.le.BluetoothLeScanner;
 import android.bluetooth.le.ScanCallback;
@@ -39,6 +40,7 @@ import com.android.volley.toolbox.StringRequest;
 import com.android.volley.toolbox.Volley;
 
 import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
@@ -57,6 +59,7 @@ public class MainActivity extends AppCompatActivity {
     private List<String> detectedRemoteDevices, detectedAdsbFlights;
     private Handler wifiScanHandler;
 
+    @SuppressLint("MissingInflatedId")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -134,6 +137,7 @@ public class MainActivity extends AppCompatActivity {
         startContinuousWifiScan();
 
         // Initialize location manager for ADS-B
+        locationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
         locationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
         startAdsbScan();
     }*/
@@ -274,8 +278,10 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
+
+
     private void fetchAdsbData(double latitude, double longitude) {
-        String url = "http://api.airplanes.live/v2/point/" + latitude + "/" + longitude + "/100";
+        String url = "https://api.airplanes.live/v2/point/" + latitude + "/" + longitude + "/100";
         Log.d(TAG, "ADS-B API URL: " + url);
         apiCallTextView.setText("API Call: " + url);
 
@@ -285,31 +291,49 @@ public class MainActivity extends AppCompatActivity {
                 new Response.Listener<String>() {
                     @Override
                     public void onResponse(String response) {
-                        Log.d(TAG, "ADS-B API Response: " + response);
-                        apiResponseTextView.setText("API Response: " + response);
+                        Log.d("API_RESPONSE", "Raw Response: " + response);
                         try {
                             JSONObject jsonResponse = new JSONObject(response);
-                            JSONArray flights = jsonResponse.getJSONArray("flights");
+                            JSONArray aircraftArray = jsonResponse.getJSONArray("ac"); // Parse the "ac" array
                             detectedAdsbFlights.clear();
-                            for (int i = 0; i < flights.length(); i++) {
-                                JSONObject flight = flights.getJSONObject(i);
-                                String flightNumber = flight.optString("flight_number", "Unknown");
-                                if (!flightNumber.isEmpty()) {
-                                    detectedAdsbFlights.add("Flight: " + flightNumber);
-                                }
+
+                            for (int i = 0; i < aircraftArray.length(); i++) {
+                                JSONObject aircraft = aircraftArray.getJSONObject(i);
+                                String flightNumber = aircraft.optString("flight", "Unknown");
+                                String type = aircraft.optString("t", "Unknown");
+                                String altitude = aircraft.optString("alt_geom", "Unknown");
+                                String speed = aircraft.optString("gs", "Unknown");
+
+                                String flightInfo = "Flight: " + flightNumber +
+                                        "\nType: " + type +
+                                        "\nAltitude: " + altitude + " ft" +
+                                        "\nSpeed: " + speed + " knots";
+
+                                detectedAdsbFlights.add(flightInfo);
                             }
+
                             adsbAdapter.notifyDataSetChanged();
-                        } catch (Exception e) {
-                            Log.e(TAG, "Error parsing ADS-B data", e);
+                        } catch (JSONException e) {
+                            Log.e("API_ERROR", "Error parsing response: " + e.getMessage());
+                            apiResponseTextView.setText("Error parsing response: " + e.getMessage());
                         }
                     }
+
+
                 },
                 new Response.ErrorListener() {
                     @Override
                     public void onErrorResponse(VolleyError error) {
-                        Log.e(TAG, "Error fetching ADS-B data: " + error.getMessage(), error);
-                        apiResponseTextView.setText("Error: " + error.getMessage());
+                        if (error.networkResponse != null) {
+                            Log.e("API_ERROR", "Error Response Code: " + error.networkResponse.statusCode);
+                            Log.e("API_ERROR", "Error Response Data: " + new String(error.networkResponse.data));
+                        } else if (error.getCause() != null) {
+                            Log.e("API_ERROR", "Error Cause: " + error.getCause().getMessage());
+                        } else {
+                            Log.e("API_ERROR", "Unknown Error: " + error.toString());
+                        }
                     }
+
                 });
 
         queue.add(stringRequest);
