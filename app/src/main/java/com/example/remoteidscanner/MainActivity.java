@@ -16,6 +16,7 @@ import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
 import android.net.wifi.WifiManager;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -91,11 +92,21 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void requestPermissions() {
-        ActivityCompat.requestPermissions(this,
-                new String[]{
-                        Manifest.permission.BLUETOOTH_SCAN,
-                        Manifest.permission.ACCESS_FINE_LOCATION
-                }, PERMISSION_REQUEST_CODE);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            ActivityCompat.requestPermissions(this, new String[]{
+                    Manifest.permission.BLUETOOTH_SCAN,
+                    Manifest.permission.BLUETOOTH_CONNECT
+            }, PERMISSION_REQUEST_CODE);
+        } else {
+            ActivityCompat.requestPermissions(this, new String[]{
+                    Manifest.permission.ACCESS_FINE_LOCATION
+            }, PERMISSION_REQUEST_CODE);
+        }
+        //ActivityCompat.requestPermissions(this,
+        //        new String[]{
+        //                Manifest.permission.BLUETOOTH_SCAN,
+        //                Manifest.permission.ACCESS_FINE_LOCATION
+        //        }, PERMISSION_REQUEST_CODE);
     }
 
     @Override
@@ -110,7 +121,7 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private void initializeScanning() {
+    /*private void initializeScanning() {
         // Initialize Bluetooth scanner
         BluetoothAdapter bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
         if (bluetoothAdapter != null) {
@@ -125,9 +136,45 @@ public class MainActivity extends AppCompatActivity {
         // Initialize location manager for ADS-B
         locationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
         startAdsbScan();
+    }*/
+    private void initializeScanning() {
+        // Check and request permissions before scanning
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) { // Android 12 and above
+            if (ActivityCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_SCAN) != PackageManager.PERMISSION_GRANTED ||
+                    ActivityCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.requestPermissions(this, new String[]{
+                        Manifest.permission.BLUETOOTH_SCAN,
+                        Manifest.permission.BLUETOOTH_CONNECT
+                }, PERMISSION_REQUEST_CODE);
+                return; // Exit the method until permissions are granted
+            }
+        } else { // For devices below Android 12
+            if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.requestPermissions(this, new String[]{
+                        Manifest.permission.ACCESS_FINE_LOCATION
+                }, PERMISSION_REQUEST_CODE);
+                return; // Exit the method until permissions are granted
+            }
+        }
+
+        // Initialize Bluetooth scanner
+        BluetoothAdapter bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+        if (bluetoothAdapter != null) {
+            bluetoothLeScanner = bluetoothAdapter.getBluetoothLeScanner();
+            startBluetoothScan(); // Start scanning
+        }
+
+        // Initialize Wi-Fi manager
+        wifiManager = (WifiManager) getApplicationContext().getSystemService(WIFI_SERVICE);
+        startContinuousWifiScan();
+
+        // Initialize location manager for ADS-B
+        locationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
+        startAdsbScan();
     }
 
-    private void startBluetoothScan() {
+
+    /*private void startBluetoothScan() {
         ScanCallback scanCallback = new ScanCallback() {
             @Override
             public void onScanResult(int callbackType, ScanResult result) {
@@ -142,7 +189,41 @@ public class MainActivity extends AppCompatActivity {
             }
         };
         bluetoothLeScanner.startScan(scanCallback);
+    }*/
+    private void startBluetoothScan() {
+        ScanCallback scanCallback = new ScanCallback() {
+            @Override
+            public void onScanResult(int callbackType, ScanResult result) {
+                if (ActivityCompat.checkSelfPermission(MainActivity.this, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
+                    return;
+                }
+                String deviceInfo = "Bluetooth: " + result.getDevice().getName() + " (" + result.getDevice().getAddress() + ")";
+                if (!detectedRemoteDevices.contains(deviceInfo)) {
+                    detectedRemoteDevices.add(deviceInfo);
+                    remoteIdAdapter.notifyDataSetChanged();
+                }
+            }
+
+            @Override
+            public void onBatchScanResults(List<ScanResult> results) {
+                for (ScanResult result : results) {
+                    if (ActivityCompat.checkSelfPermission(MainActivity.this, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
+                        return;
+                    }
+                    Log.d(TAG, "Batch Device Found: " + result.getDevice().getName() + " (" + result.getDevice().getAddress() + ")");
+                }
+            }
+
+            @Override
+            public void onScanFailed(int errorCode) {
+                Log.e(TAG, "Bluetooth Scan Failed with Error Code: " + errorCode);
+            }
+        };
+
+        bluetoothLeScanner.startScan(scanCallback);
     }
+
+
 
     private void startContinuousWifiScan() {
         wifiScanHandler = new Handler(Looper.getMainLooper());
