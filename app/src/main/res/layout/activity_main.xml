@@ -5,6 +5,13 @@
     android:layout_height="match_parent"
     android:orientation="vertical">
 
+    <TextView
+        android:id="@+id/location_text"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Location: Not available"
+        android:padding="8dp" />
+
     <!-- Remote ID List -->
     <TextView
         android:layout_width="match_parent"
@@ -36,27 +43,5 @@
         android:layout_height="0dp"
         android:layout_weight="1"
         android:scrollbars="vertical" />
-
-    <!-- Additional TextViews -->
-    <TextView
-        android:id="@+id/location_text"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Location: Not available"
-        android:padding="8dp" />
-
-    <TextView
-        android:id="@+id/api_call_text"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="API Call: Not available"
-        android:padding="8dp" />
-
-    <TextView
-        android:id="@+id/api_response_text"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="API Response: Not available"
-        android:padding="8dp" />
 
 </LinearLayout>

@@ -8,10 +8,6 @@ package com.example.remoteidscanner;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
-import android.bluetooth.BluetoothAdapter;
-import android.bluetooth.le.BluetoothLeScanner;
-import android.bluetooth.le.ScanCallback;
-import android.bluetooth.le.ScanResult;
 import android.content.pm.PackageManager;
 import android.location.Location;
 import android.location.LocationListener;
@@ -50,14 +46,14 @@ public class MainActivity extends AppCompatActivity {
 
     private static final int PERMISSION_REQUEST_CODE = 1;
     private static final String TAG = "ADS-B Scanner";
-    private BluetoothLeScanner bluetoothLeScanner;
     private WifiManager wifiManager;
     private LocationManager locationManager;
     private ListView remoteIdListView, adsbListView;
-    private TextView locationTextView, apiCallTextView, apiResponseTextView;
+    private TextView locationTextView;
     private ArrayAdapter<String> remoteIdAdapter, adsbAdapter;
     private List<String> detectedRemoteDevices, detectedAdsbFlights;
     private Handler wifiScanHandler;
+    private double userLatitude, userLongitude;
 
     @SuppressLint("MissingInflatedId")
     @Override
@@ -69,8 +65,6 @@ public class MainActivity extends AppCompatActivity {
         remoteIdListView = findViewById(R.id.remote_id_list);
         adsbListView = findViewById(R.id.adsb_list);
         locationTextView = findViewById(R.id.location_text);
-        apiCallTextView = findViewById(R.id.api_call_text);
-        apiResponseTextView = findViewById(R.id.api_response_text);
 
         detectedRemoteDevices = new ArrayList<>();
         detectedAdsbFlights = new ArrayList<>();
@@ -90,26 +84,13 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private boolean checkPermissions() {
-        return ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_SCAN) == PackageManager.PERMISSION_GRANTED &&
-                ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED;
+        return ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED;
     }
 
     private void requestPermissions() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            ActivityCompat.requestPermissions(this, new String[]{
-                    Manifest.permission.BLUETOOTH_SCAN,
-                    Manifest.permission.BLUETOOTH_CONNECT
-            }, PERMISSION_REQUEST_CODE);
-        } else {
-            ActivityCompat.requestPermissions(this, new String[]{
-                    Manifest.permission.ACCESS_FINE_LOCATION
-            }, PERMISSION_REQUEST_CODE);
-        }
-        //ActivityCompat.requestPermissions(this,
-        //        new String[]{
-        //                Manifest.permission.BLUETOOTH_SCAN,
-        //                Manifest.permission.ACCESS_FINE_LOCATION
-        //        }, PERMISSION_REQUEST_CODE);
+        ActivityCompat.requestPermissions(this, new String[]{
+                Manifest.permission.ACCESS_FINE_LOCATION
+        }, PERMISSION_REQUEST_CODE);
     }
 
     @Override
@@ -124,50 +105,7 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    /*private void initializeScanning() {
-        // Initialize Bluetooth scanner
-        BluetoothAdapter bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
-        if (bluetoothAdapter != null) {
-            bluetoothLeScanner = bluetoothAdapter.getBluetoothLeScanner();
-            startBluetoothScan();
-        }
-
-        // Initialize Wi-Fi manager
-        wifiManager = (WifiManager) getApplicationContext().getSystemService(WIFI_SERVICE);
-        startContinuousWifiScan();
-
-        // Initialize location manager for ADS-B
-        locationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
-        locationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
-        startAdsbScan();
-    }*/
     private void initializeScanning() {
-        // Check and request permissions before scanning
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) { // Android 12 and above
-            if (ActivityCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_SCAN) != PackageManager.PERMISSION_GRANTED ||
-                    ActivityCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
-                ActivityCompat.requestPermissions(this, new String[]{
-                        Manifest.permission.BLUETOOTH_SCAN,
-                        Manifest.permission.BLUETOOTH_CONNECT
-                }, PERMISSION_REQUEST_CODE);
-                return; // Exit the method until permissions are granted
-            }
-        } else { // For devices below Android 12
-            if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-                ActivityCompat.requestPermissions(this, new String[]{
-                        Manifest.permission.ACCESS_FINE_LOCATION
-                }, PERMISSION_REQUEST_CODE);
-                return; // Exit the method until permissions are granted
-            }
-        }
-
-        // Initialize Bluetooth scanner
-        BluetoothAdapter bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
-        if (bluetoothAdapter != null) {
-            bluetoothLeScanner = bluetoothAdapter.getBluetoothLeScanner();
-            startBluetoothScan(); // Start scanning
-        }
-
         // Initialize Wi-Fi manager
         wifiManager = (WifiManager) getApplicationContext().getSystemService(WIFI_SERVICE);
         startContinuousWifiScan();
@@ -176,58 +114,6 @@ public class MainActivity extends AppCompatActivity {
         locationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
         startAdsbScan();
     }
-
-
-    /*private void startBluetoothScan() {
-        ScanCallback scanCallback = new ScanCallback() {
-            @Override
-            public void onScanResult(int callbackType, ScanResult result) {
-                if (ActivityCompat.checkSelfPermission(MainActivity.this, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
-                    return;
-                }
-                String deviceInfo = "Bluetooth: " + result.getDevice().getName() + " (" + result.getDevice().getAddress() + ")";
-                if (!detectedRemoteDevices.contains(deviceInfo)) {
-                    detectedRemoteDevices.add(deviceInfo);
-                    remoteIdAdapter.notifyDataSetChanged();
-                }
-            }
-        };
-        bluetoothLeScanner.startScan(scanCallback);
-    }*/
-    private void startBluetoothScan() {
-        ScanCallback scanCallback = new ScanCallback() {
-            @Override
-            public void onScanResult(int callbackType, ScanResult result) {
-                if (ActivityCompat.checkSelfPermission(MainActivity.this, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
-                    return;
-                }
-                String deviceInfo = "Bluetooth: " + result.getDevice().getName() + " (" + result.getDevice().getAddress() + ")";
-                if (!detectedRemoteDevices.contains(deviceInfo)) {
-                    detectedRemoteDevices.add(deviceInfo);
-                    remoteIdAdapter.notifyDataSetChanged();
-                }
-            }
-
-            @Override
-            public void onBatchScanResults(List<ScanResult> results) {
-                for (ScanResult result : results) {
-                    if (ActivityCompat.checkSelfPermission(MainActivity.this, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
-                        return;
-                    }
-                    Log.d(TAG, "Batch Device Found: " + result.getDevice().getName() + " (" + result.getDevice().getAddress() + ")");
-                }
-            }
-
-            @Override
-            public void onScanFailed(int errorCode) {
-                Log.e(TAG, "Bluetooth Scan Failed with Error Code: " + errorCode);
-            }
-        };
-
-        bluetoothLeScanner.startScan(scanCallback);
-    }
-
-
 
     private void startContinuousWifiScan() {
         wifiScanHandler = new Handler(Looper.getMainLooper());
@@ -239,13 +125,15 @@ public class MainActivity extends AppCompatActivity {
                         return;
                     }
                     List<android.net.wifi.ScanResult> wifiResults = wifiManager.getScanResults();
+                    detectedRemoteDevices.clear();
                     for (android.net.wifi.ScanResult result : wifiResults) {
-                        String deviceInfo = "Wi-Fi: " + result.SSID + " (" + result.BSSID + ")";
-                        if (!detectedRemoteDevices.contains(deviceInfo)) {
+                        // Filter for SSIDs starting with "RID-"
+                        if (result.SSID.startsWith("RID-")) {
+                            String deviceInfo = "Wi-Fi: " + result.SSID + " (" + result.BSSID + ")";
                             detectedRemoteDevices.add(deviceInfo);
-                            remoteIdAdapter.notifyDataSetChanged();
                         }
                     }
+                    remoteIdAdapter.notifyDataSetChanged();
                 }
                 wifiScanHandler.postDelayed(this, 10000); // Re-scan every 10 seconds
             }
@@ -260,11 +148,11 @@ public class MainActivity extends AppCompatActivity {
         locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 0, 0, new LocationListener() {
             @Override
             public void onLocationChanged(@NonNull Location location) {
-                double latitude = location.getLatitude();
-                double longitude = location.getLongitude();
-                Log.d(TAG, "Fetching ADS-B data for location: " + latitude + ", " + longitude);
-                locationTextView.setText("Latitude: " + latitude + "\nLongitude: " + longitude);
-                fetchAdsbData(latitude, longitude);
+                userLatitude = location.getLatitude();
+                userLongitude = location.getLongitude();
+                Log.d(TAG, "Fetching ADS-B data for location: " + userLatitude + ", " + userLongitude);
+                locationTextView.setText("Latitude: " + userLatitude + "\nLongitude: " + userLongitude);
+                fetchAdsbData(userLatitude, userLongitude);
             }
 
             @Override
@@ -278,13 +166,8 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-
-
     private void fetchAdsbData(double latitude, double longitude) {
-        String url = "https://api.airplanes.live/v2/point/" + latitude + "/" + longitude + "/100";
-        Log.d(TAG, "ADS-B API URL: " + url);
-        apiCallTextView.setText("API Call: " + url);
-
+        String url = "https://api.airplanes.live/v2/point/" + latitude + "/" + longitude + "/15";
         RequestQueue queue = Volley.newRequestQueue(this);
 
         StringRequest stringRequest = new StringRequest(Request.Method.GET, url,
@@ -302,12 +185,29 @@ public class MainActivity extends AppCompatActivity {
                                 String flightNumber = aircraft.optString("flight", "Unknown");
                                 String type = aircraft.optString("t", "Unknown");
                                 String altitude = aircraft.optString("alt_geom", "Unknown");
-                                String speed = aircraft.optString("gs", "Unknown");
+                                double speedKnots = aircraft.optDouble("gs", 0.0);
+                                double flightLatitude = aircraft.optDouble("lat", 0.0);
+                                double flightLongitude = aircraft.optDouble("lon", 0.0);
+
+                                // Convert speed to MPH
+                                double speedMph = speedKnots * 1.15078;
+
+                                // Calculate distance to the user in miles
+                                float[] distanceResult = new float[1];
+                                Location.distanceBetween(userLatitude, userLongitude, flightLatitude, flightLongitude, distanceResult);
+                                String distanceMiles = String.format("%.2f miles", distanceResult[0] / 1609.34);
+
+                                // Calculate bearing for cardinal direction
+                                float bearing = (float) Math.toDegrees(Math.atan2(
+                                        flightLongitude - userLongitude,
+                                        flightLatitude - userLatitude));
+                                String cardinalDirection = getCardinalDirection(bearing);
 
                                 String flightInfo = "Flight: " + flightNumber +
-                                        "\nType: " + type +
+                                        "\nAircraft: " + type +
                                         "\nAltitude: " + altitude + " ft" +
-                                        "\nSpeed: " + speed + " knots";
+                                        "\nSpeed: " + String.format("%.2f mph", speedMph) +
+                                        "\nDistance: " + distanceMiles + " " + cardinalDirection;
 
                                 detectedAdsbFlights.add(flightInfo);
                             }
@@ -315,11 +215,8 @@ public class MainActivity extends AppCompatActivity {
                             adsbAdapter.notifyDataSetChanged();
                         } catch (JSONException e) {
                             Log.e("API_ERROR", "Error parsing response: " + e.getMessage());
-                            apiResponseTextView.setText("Error parsing response: " + e.getMessage());
                         }
                     }
-
-
                 },
                 new Response.ErrorListener() {
                     @Override
@@ -333,9 +230,31 @@ public class MainActivity extends AppCompatActivity {
                             Log.e("API_ERROR", "Unknown Error: " + error.toString());
                         }
                     }
-
                 });
 
         queue.add(stringRequest);
+    }
+
+    private String getCardinalDirection(float bearing) {
+        if (bearing < 0) {
+            bearing += 360;
+        }
+        if (bearing >= 337.5 || bearing < 22.5) {
+            return "N";
+        } else if (bearing >= 22.5 && bearing < 67.5) {
+            return "NE";
+        } else if (bearing >= 67.5 && bearing < 112.5) {
+            return "E";
+        } else if (bearing >= 112.5 && bearing < 157.5) {
+            return "SE";
+        } else if (bearing >= 157.5 && bearing < 202.5) {
+            return "S";
+        } else if (bearing >= 202.5 && bearing < 247.5) {
+            return "SW";
+        } else if (bearing >= 247.5 && bearing < 292.5) {
+            return "W";
+        } else {
+            return "NW";
+        }
     }
 }
